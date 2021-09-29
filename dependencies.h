@@ -9,14 +9,20 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
-#include <pthread.h>
 
 #define SIZE 10
 
 struct Memory 
 {
-	int status;
-	uint32_t number;
+/*
+client_flag = 1 when there is a request outstanding
+server_flag = 0 server is active
+server_flag = 1 client can read data
+server_flag = 2 slot is unused
+complete_threads = -1 slot is free
+*/
+	int status, s_flag[SIZE], c_flag, complete_threads[SIZE];
+	uint32_t number, slot[SIZE];
 };
 
 #endif

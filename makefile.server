@@ -1,5 +1,5 @@
 CC=gcc 
-CFLAGS=
+CFLAGS= -lpthread
 DEPS = dependencies.h                				    # include directory
 OBJ = server.o 						        		 	# source directory
 
