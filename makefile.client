@@ -1,7 +1,7 @@
 CC=gcc 
 CFLAGS=
 DEPS = dependencies.h                                   # include directory
-OBJ = client.o                                          # source directory
+OBJ = client.o											# source directory
 
 %.o: %.c $(DEPS) 										# create .o files after compiling .c and .h files
 	$(CC) -c -o $@ $< $(CFLAGS)

@@ -7,15 +7,16 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdint.h>
+#include <pthread.h>
 
-#define  NOT_READY  -1
-#define  FILLED     0
-#define  TAKEN      1
+#define SIZE 10
 
 struct Memory 
 {
-	int  status;
-	int  data[4];
+	int status;
+	uint32_t number;
 };
 
 #endif

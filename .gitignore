@@ -1,2 +1,3 @@
 server.o
 client.o
+client_get_attach.o

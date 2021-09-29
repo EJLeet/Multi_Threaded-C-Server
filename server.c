@@ -1,38 +1,68 @@
-#include  "dependencies.h"
+#include "dependencies.h"
+
+struct hold_rotations
+{// used to hold data for each thread (rotated number)
+     uint32_t number;
+     int slot_number;
+};
+
+struct Memory *shm_ptr;
+
+uint32_t rotate(uint32_t number, int bits_rotated)
+{// take a number and rotate it by b bits
+     if (bits_rotated == 0) return number;
+     return (number >> bits_rotated) | (number << (32 - bits_rotated));
+}
+
+uint32_t trial_division(uint32_t number)
+{
+     uint32_t f = 2;
+     while (number > 1)
+     {
+          if (number % f == 0)
+          {
+               printf("%u\n", f);
+               number /= f;
+          }
+          else f++;
+     }
+}
 
 int main(void)
 {
-     key_t          ShmKEY;
-     int            ShmID;
-     struct Memory  *ShmPTR;
-     
-     ShmKEY = ftok(".", 'x');
-     ShmID = shmget(ShmKEY, sizeof(struct Memory), 0666);
-     if (ShmID < 0) {
-          printf("*** shmget error (server) ***\n");
-          exit(1);
-     }
-     printf("   Server has received a shared memory of four integers...\n");
-     
-     ShmPTR = (struct Memory *) shmat(ShmID, NULL, 0);
-     if ((long) ShmPTR == -1) {
-          printf("*** shmat error (server) ***\n");
-          exit(1);
-     }
-     printf("   server has attached the shared memory...\n");
-     
-     while (ShmPTR->status != FILLED)
-          ;
-     printf("   server found the data is ready...\n");
-     printf("   server found %d %d %d %d in shared memory...\n",
-                ShmPTR->data[0], ShmPTR->data[1], 
-                ShmPTR->data[2], ShmPTR->data[3]);
+     key_t shm_key;
+     int shm_id;
 
-     ShmPTR->status = TAKEN;
-     printf("   server has informed client data have been taken...\n");
-     shmdt((void *) ShmPTR);
-     printf("   server has detached its shared memory...\n");
-     printf("   server exits...\n");
+     // create shared memory
+     shm_key = ftok(".", 'x');
+     shm_id = shmget(shm_key, sizeof(struct Memory), 0666);
+     if (shm_id < 0) { printf("Server could not get memory\n"), exit(1); }
+
+     // attach to shared memory
+     shm_ptr = (struct Memory *) shmat(shm_id, NULL, 0);
+     if ((int) shm_ptr == -1) { printf("Server could not attach to shared memory\n"), exit(1); }
+
+     // read data from shared memory
+     uint32_t number = shm_ptr -> number;
+     
+     // start 32 threads for this number
+     pthread_t thread_id[32];
+     
+     // create 32 structs for each rotated number
+     struct hold_rotations thread_data[32];
+
+     // rotate each number and assign to thread data
+     for (int i = 0; i < 32; i++) 
+     {
+          thread_data[i].number = rotate(number, i);
+          trial_division(thread_data[i].number);
+     }
+
+     // trial division for each of the 32 numbers
+
+     
+
+
 
      return 0;
 }
