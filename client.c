@@ -20,20 +20,26 @@ int send_query(struct Memory *shm_ptr, uint32_t number)
 
 void query(struct Memory *shm_ptr)
 {// function handles send, receive and new query requests 
-     char user_input[11];
+     char user_input[11], input;
+
+     // get number from user, convert to 32 bit ul
+     printf("Enter a 32 bit number: ");
+     fgets(user_input, sizeof(user_input), stdin);
+     strtok(user_input, "\n");
+
 
      while (1)
      {// loop to get numbers from user or receive data from server
 
-          // for (int i = 0; i < SIZE; i++)
-          // {// check if there is data from server in shared memory
-          //      if (shm_ptr -> complete_threads[i] != -1)
-          //      {// print active queries and thread completion status
-          //           float value = ((float) shm_ptr -> complete_threads[i] / 32.0) * 100.0;
-          //           printf("Query %d: %d\n", i + 1, (int) value);
-          //      }
-          // }
-          
+               // for (int i = 0; i < SIZE; i++)
+               // {// check if there is data from server in shared memory
+               //      if (shm_ptr -> complete_threads[i] != -1)
+               //      {// print active queries and thread completion status
+               //           float value = ((float) shm_ptr -> complete_threads[i] / 32.0) * 100.0;
+               //           printf("Query %d: %d\n", i + 1, (int) value);
+               //      }
+               // }
+               
           for (int i = 0; i < SIZE; i++)
           {// receive server data
                if (shm_ptr -> s_flag[i] == 1)
@@ -53,15 +59,11 @@ void query(struct Memory *shm_ptr)
                     printf("Query %d took %.f seconds\n", i + 1, time_taken);
                }
           }
-          
-          // get number from user, convert to 32 bit ul
-          printf("Enter a 32 bit number: ");
-          fgets(user_input, sizeof(user_input), stdin);
 
-          if (strncmp(user_input, "q", 1) == 0) { printf("Client will now exit\n"); break; }
+          if (strncmp(user_input, "q", 1) == 0) break;
 
           else
-          {
+          {// user entered a number
                uint32_t number = strtoul(user_input, NULL, 10); 
 
                // send query to server and receive slot number
@@ -74,15 +76,16 @@ void query(struct Memory *shm_ptr)
                {// there is an available slot, send and start clock
                     shm_ptr -> complete_threads[slot_number] = 0;
                     time(&(thread_time[slot_number]));
+                    
+                    memset(user_input, 0, sizeof(user_input)); // clear input
+
+                    // request user for more input
+                    printf("Enter a 32 bit number: ");
+                    fgets(user_input, sizeof(user_input), stdin);
+                    strtok(user_input, "\n");
                }
-
-               memset(user_input, 0, sizeof(user_input)); // clear input
-          }
-
-          
+          }       
      }
-
-
 }
 
 int main(void)

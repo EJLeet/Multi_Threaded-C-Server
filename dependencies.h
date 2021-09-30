@@ -14,6 +14,7 @@
 #include <time.h>
 #include <errno.h>
 
+
 #define SIZE 10
 
 struct Memory 
