@@ -62,7 +62,7 @@ void trial_division(void *data)
      // thread has finished
      sem_wait(&(mutex[slot_number]));
      shm_ptr -> complete_threads[slot_number]++;
-     printf("Query: %d, Thread %d completed\n", slot_number + 1, shm_ptr -> complete_threads[slot_number]);
+     printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> complete_threads[slot_number]);
 
      sem_post(&(mutex[slot_number]));
 

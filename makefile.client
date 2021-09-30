@@ -1,5 +1,5 @@
 CC=gcc 
-CFLAGS=
+CFLAGS= -lcurses
 DEPS = dependencies.h                                   # include directory
 OBJ = client.o											# source directory
 

@@ -21,6 +21,7 @@ int send_query(struct Memory *shm_ptr, uint32_t number)
 void query(struct Memory *shm_ptr)
 {// function handles send, receive and new query requests 
      char user_input[11], input;
+     int slot_number;
 
      // get number from user, convert to 32 bit ul
      printf("Enter a 32 bit number: ");
@@ -56,10 +57,10 @@ void query(struct Memory *shm_ptr)
                     time(&elapsed);
 
                     double time_taken = difftime(elapsed, thread_time[i]);
-                    printf("Query %d took %.f seconds\n", i + 1, time_taken);
+                    printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
                }
           }
-
+          
           if (strncmp(user_input, "q", 1) == 0) break;
 
           else
@@ -67,7 +68,7 @@ void query(struct Memory *shm_ptr)
                uint32_t number = strtoul(user_input, NULL, 10); 
 
                // send query to server and receive slot number
-               int slot_number = send_query(shm_ptr, number);
+               slot_number = send_query(shm_ptr, number);
 
                // count threads to check if there are available slots
                if (slot_number == 11) printf("Server can not receive requests at this time\n");
