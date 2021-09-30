@@ -1,6 +1,20 @@
 #include "dependencies.h"
-#include <pthread.h>
-#include <semaphore.h>
+
+int msleep(long msec)
+{
+     struct timespec ts;
+     int res;
+
+     if (msec < 0) { errno = EINVAL; return -1; }
+
+     ts.tv_sec = msec / 1000;
+     ts.tv_nsec = (msec % 1000) * 1000000;
+
+     do res = nanosleep(&ts, &ts);
+     while (res && errno == EINTR);
+
+     return res;
+}
 
 struct hold_rotations
 {// used to hold data for each thread (rotated number)
@@ -36,7 +50,7 @@ void trial_division(void *data)
                shm_ptr -> s_flag[slot_number] = 1;
                prev_f = f;
 
-               sleep(0.1); // 10 millisecond delay
+               msleep(10); // 10 millisecond delay
 
                sem_post(&(mutex[slot_number])); // semaphore signal
           
