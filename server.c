@@ -34,29 +34,36 @@ uint32_t rotate(uint32_t number, int bits_rotated)
 
 void trial_division(void *data)
 {
-     uint32_t number = ((struct hold_rotations *)data) -> number, f = 2, prev_f = 0;
+     uint32_t number = ((struct hold_rotations *)data) -> number, factor = 2, prev_factor = 0;
      int slot_number = ((struct hold_rotations *)data) -> slot_number;
 
      while (number > 1)
      {// Calculate factor
-          if (number % f == 0)
+
+          if (number % factor == 0)
           {// is a factor
-               sem_wait(&(mutex[slot_number]));
-               
-               while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
-               
-               // send factor
-               shm_ptr -> slot[slot_number] = f;
-               shm_ptr -> s_flag[slot_number] = 1;
-               prev_f = f;
 
-               msleep(10); // 10 millisecond delay
+               if (prev_factor != factor)
+               {// dont print duplicates inside same thread
+               
+                    sem_wait(&(mutex[slot_number]));
+                    
+                    while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
+                    
+                    // send factor
+                    shm_ptr -> slot[slot_number] = factor;
+                    shm_ptr -> s_flag[slot_number] = 1;
+                    prev_factor = factor;
 
-               sem_post(&(mutex[slot_number])); // semaphore signal
-          
-               number /= f; // decrease f
+                    msleep(10); // 10 millisecond delay
+
+                    sem_post(&(mutex[slot_number])); // semaphore signal
+               }
+
+               number /= factor; // decrease f
           }
-          else f++; // is not a factor move to next f
+
+          else factor++; // is not a factor move to next f
      }
 
      // thread has finished
@@ -125,6 +132,8 @@ int main(void)
      shm_ptr = (struct Memory *) shmat(shm_id, NULL, 0);
      if ((long) shm_ptr == -1) { printf("Server could not attach to shared memory\n"), exit(1); }
      
+     printf("Waiting for client to send input\n");
+
      create_threads();
 
      shmdt((void *) shm_ptr); // detach and exit
