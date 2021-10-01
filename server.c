@@ -74,7 +74,6 @@ void trial_division(void *data)
      sem_post(&(mutex[slot_number]));
 
      pthread_exit(NULL);
-
 }
 
 void create_threads()
@@ -113,9 +112,7 @@ void create_threads()
                     pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
                }
           }
-     }
-
-     
+     }  
 }
 
 int main(void)

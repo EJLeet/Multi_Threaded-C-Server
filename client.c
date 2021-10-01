@@ -1,6 +1,14 @@
 #include "dependencies.h"
 
 time_t thread_time[SIZE];
+char runtime_input[11];
+
+void *user_input_thread(void * data)
+{// scan for user input while receving data
+
+     fgets(runtime_input, sizeof(runtime_input), stdin);
+     strtok(runtime_input, "\n");
+}
 
 int send_query(struct Memory *shm_ptr, uint32_t number)
 {
@@ -21,9 +29,21 @@ int send_query(struct Memory *shm_ptr, uint32_t number)
 void receive_factors(struct Memory *shm_ptr)
 {// display factors sent form server
 
+     char input;
+     pthread_t check_input;
+
      while (1)
      {// loop to get numbers from user or receive data from server
-               
+          // check for user input
+          pthread_create(&check_input, NULL, user_input_thread, NULL);
+
+          if (strncmp(runtime_input, "q", 1) == 0) break;
+
+          else
+          {// queue number
+
+          }
+
           for (int i = 0; i < SIZE; i++)
           {// receive server data
 
@@ -53,6 +73,8 @@ void get_input(struct Memory *shm_ptr)
      char user_input[11];
      int slot_number = 0;
 
+     printf("%d numbers sent to server\n", slot_number);
+
      while(++slot_number < 10)
      {// loop until client has entered 10 numbers
 
@@ -72,6 +94,8 @@ void get_input(struct Memory *shm_ptr)
           time(&(thread_time[slot_number]));
           
           memset(user_input, 0, sizeof(user_input)); // clear input
+
+          printf("%d numbers sent to server\n", slot_number + 1);
      }
 
      receive_factors(shm_ptr);
@@ -97,6 +121,12 @@ int main(void)
      shm_ptr -> c_flag = 0;
      for (int i = 0; i < SIZE; i++) shm_ptr -> s_flag[i] = 2;
      for (int i = 0; i < SIZE; i++) shm_ptr -> complete_threads[i] = -1;
+
+     // display user options
+     printf("The server will start factorising numbers once 10 numbers have been sent\n");
+     printf("You can enter more numbers when the server is factorising (up to 10 more)\n");
+     printf("These numbers will be placed in a queue and passed to the server when space is available\n");
+     printf("Enter q at anytime to quit\n");
 
      get_input(shm_ptr); // get numbers from user
 
