@@ -91,7 +91,7 @@ void get_input(struct Memory *shm_ptr)
      int slot_number = 0;
 
      printf("%d numbers sent to server\n", slot_number);
-
+     
      while(++slot_number < 10)
      {// loop until client has entered 10 numbers
 
