@@ -31,6 +31,7 @@ void receive_factors(struct Memory *shm_ptr)
 
      char input;
      pthread_t check_input;
+     int slot_number = 0;
 
      while (1)
      {// loop to get numbers from user or receive data from server
@@ -40,9 +41,25 @@ void receive_factors(struct Memory *shm_ptr)
           if (strncmp(runtime_input, "q", 1) == 0) break;
 
           else
-          {// queue number
+          {// a number was entered
 
+               uint32_t number = strtoul(runtime_input, NULL, 10);
+               if (number > 0)
+               {// check if available slot
+
+                    slot_number = send_query(shm_ptr, number);
+                    if (slot_number < 11)
+                    {// there is an available slot
+                    
+                         shm_ptr -> complete_threads[slot_number] = 0;
+                         time(&(thread_time[slot_number]));
+                    }                    
+
+                    else printf("Server is busy\n");
+               }
           }
+
+          memset(runtime_input, 0, sizeof(runtime_input));
 
           for (int i = 0; i < SIZE; i++)
           {// receive server data
@@ -124,8 +141,7 @@ int main(void)
 
      // display user options
      printf("The server will start factorising numbers once 10 numbers have been sent\n");
-     printf("You can enter more numbers when the server is factorising (up to 10 more)\n");
-     printf("These numbers will be placed in a queue and passed to the server when space is available\n");
+     printf("If the server has finished factorising a query, you may enter another query\n");
      printf("Enter q at anytime to quit\n");
 
      get_input(shm_ptr); // get numbers from user
