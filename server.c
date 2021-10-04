@@ -1,7 +1,6 @@
 #include "dependencies.h"
 
 void create_threads();
-void test_case( void *data);
 uint32_t rotate(uint32_t number, int bits_rotated);
 void trial_division(void *data);
 int msleep(long msec);
@@ -40,82 +39,41 @@ void create_threads()
 
      while (1)
      {// loop until theres no more numbers queued
-     
+
           if (shm_ptr -> c_flag == 1)
           {// check to see if client has sent a number
 
                uint32_t number = shm_ptr -> number; // read data from shared memory
 
-               // if (number == 0) 
-               // {// user entered 0 run test mode
-                    
-               //      for (int query = 0; query < 3; query++)
-               //      {// assign 3 slots for 1 of 3 user queries
+               // assign a slot number to client
+               uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+               for (uint32_t i = 0; i < SIZE; i++)
+               {// look for available threads
 
-               //           uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
-               //           for (uint32_t i = 0; i < SIZE; i++)
-               //           {// look for available threads
+                    if (shm_ptr -> complete_threads[i] == -1)
+                    {// if there is a thread available, assign it
 
-               //                if (shm_ptr -> complete_threads[i] == -1)
-               //                {// if there is a thread available, assign it
-
-               //                     slot_number = i;
-               //                     shm_ptr -> s_flag[i] = 0;
-               //                     break;
-               //                }
-               //           }
-                         
-               //           shm_ptr -> number = slot_number;
-
-               //           shm_ptr -> c_flag = 0;
-
-               //           pthread_t thread_id[10]; // create 10 threads for numbers 0-9/10-19/20-29
-
-               //           struct hold_rotations thread_data[10]; // hold each of the 10 numbers
-
-               //           for (int i = 0; i < 10; i++)
-               //           {// assign each nunber 
-
-               //                thread_data[i].number = i + (query * 10);
-               //                thread_data[i].slot_number = slot_number;
-               //                pthread_create(&(thread_id[i]), NULL, (void *) test_case, (void *) &(thread_data[i]));
-               //           }
-               //      }
-               // }
-
-               // else
-               // {// normal case
-
-                    // assign a slot number to client
-                    uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
-                    for (uint32_t i = 0; i < SIZE; i++)
-                    {// look for available threads
-
-                         if (shm_ptr -> complete_threads[i] == -1)
-                         {// if there is a thread available, assign it
-
-                              slot_number = i;
-                              shm_ptr -> s_flag[i] = 0;
-                              break;
-                         }
+                         slot_number = i;
+                         shm_ptr -> s_flag[i] = 0;
+                         break;
                     }
+               }
 
-                    shm_ptr -> number = slot_number;
+               shm_ptr -> number = slot_number;
 
-                    shm_ptr -> c_flag = 0;
+               shm_ptr -> c_flag = 0;
 
-                    pthread_t thread_id[32]; // start 32 threads for this number
-                    
-                    struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
+               pthread_t thread_id[32]; // start 32 threads for this number
+               
+               struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
 
-                    for (int i = 0; i < 32; i++) 
-                    {// rotate each number and assign to thread data
-                    
-                         thread_data[i].number = rotate(number, i);
-                         thread_data[i].slot_number = slot_number;
-                         pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
-                    }
-              // }
+               for (int i = 0; i < 32; i++) 
+               {// rotate each number and assign to thread data
+               
+                    thread_data[i].number = rotate(number, i);
+                    thread_data[i].slot_number = slot_number;
+                    pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
+               }
           }
      }  
 }
@@ -168,37 +126,6 @@ void trial_division(void *data)
      sem_post(&(mutex[slot_number]));
 
      pthread_exit(NULL);
-}
-
-void test_case(void *data)
-{
-     uint32_t number = ((struct hold_rotations *)data) -> number;
-     int slot_number = ((struct hold_rotations *)data) -> slot_number;
-
-     time_t seed;
-
-     sem_wait(&(mutex[slot_number]));
-                    
-     while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
-
-     // send test case number
-     shm_ptr -> slot[slot_number] = number;
-     shm_ptr -> s_flag[slot_number] = 1;
-
-     srand((unsigned) time(&seed)); // set seed
-     msleep((rand() % 90) + 10); // random delay between 10 and 100ms
-
-     sem_post(&(mutex[slot_number])); // semaphore signal     
-
-     // thread has finished
-     sem_wait(&(mutex[slot_number]));
-     shm_ptr -> complete_threads[slot_number]++;
-     printf("Test Case: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> complete_threads[slot_number]);
-
-     sem_post(&(mutex[slot_number]));
-
-     pthread_exit(NULL);
-
 }
 
 int msleep(long msec)

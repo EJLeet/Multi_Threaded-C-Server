@@ -4,6 +4,7 @@ void get_input(struct Memory *shm_ptr);
 int send_query(struct Memory *shm_ptr, uint32_t number);
 void receive_factors(struct Memory *shm_ptr);
 void *user_input_thread(void * data);
+void check_user_input(struct Memory *shm_ptr);
 
 time_t thread_time[SIZE];
 char runtime_input[11];
@@ -58,44 +59,16 @@ void get_input(struct Memory *shm_ptr)
 
           // user entered a number
           uint32_t number = strtoul(user_input, NULL, 10); 
-
-          // if (number == 0)
-          // {// test case - check if server is processing
-
-          //      slot_number = send_query(shm_ptr, number);
-
-          //      if (slot_number == 0)
-          //      {// server is not processing
-
-          //           shm_ptr -> complete_threads[slot_number] = 0;
-          //           time(&(thread_time[slot_number]));
-          //           memset(user_input, 0, sizeof(user_input)); // clear input
-          //           break;
-          //      }
-
-          //      else
-          //      {// server is processing
-
-          //           printf("Test case will run after server has processed all other requests\n");
-          //           shm_ptr -> complete_threads[slot_number] = 0;
-          //           time(&(thread_time[slot_number]));
-          //           memset(user_input, 0, sizeof(user_input)); // clear input
-          //      }
-          // }
           
-          // else
-          // {// send query to server and receive slot number
-               
-               slot_number = send_query(shm_ptr, number);
+          slot_number = send_query(shm_ptr, number);
 
-               // there is an available slot, send and start clock
-               shm_ptr -> complete_threads[slot_number] = 0;
-               time(&(thread_time[slot_number]));
-               
-               memset(user_input, 0, sizeof(user_input)); // clear input
+          // there is an available slot, send and start clock
+          shm_ptr -> complete_threads[slot_number] = 0;
+          time(&(thread_time[slot_number]));
+          
+          memset(user_input, 0, sizeof(user_input)); // clear input
 
-               printf("%d numbers sent to server\n", slot_number + 1);
-        //  }
+          printf("%d numbers sent to server\n", slot_number + 1);
      }
 
      receive_factors(shm_ptr);
@@ -121,36 +94,12 @@ void receive_factors(struct Memory *shm_ptr)
 {// display factors sent form server
 
      char input;
-     pthread_t check_input;
      int slot_number = 0;
 
      while (1)
      {// loop to get numbers from user or receive data from server
-          // check for user input
-          pthread_create(&check_input, NULL, user_input_thread, NULL);
 
-          if (strncmp(runtime_input, "q", 1) == 0) break;
-
-          else
-          {// a number was entered
-
-               uint32_t number = strtoul(runtime_input, NULL, 10);
-               if (number > 0)
-               {// check if available slot
-
-                    slot_number = send_query(shm_ptr, number);
-                    if (slot_number < 11)
-                    {// there is an available slot
-                    
-                         shm_ptr -> complete_threads[slot_number] = 0;
-                         time(&(thread_time[slot_number]));
-                    }                    
-
-                    else printf("Server is busy\n");
-               }
-          }
-
-          memset(runtime_input, 0, sizeof(runtime_input));
+          check_user_input(shm_ptr); // get user input and handle quit
 
           for (int i = 0; i < SIZE; i++)
           {// receive server data
@@ -181,4 +130,35 @@ void *user_input_thread(void * data)
 
      fgets(runtime_input, sizeof(runtime_input), stdin);
      strtok(runtime_input, "\n");
+}
+
+void check_user_input(struct Memory *shm_ptr)
+{// check for user input
+     pthread_t check_input;
+     int slot_number = 0;
+
+     pthread_create(&check_input, NULL, user_input_thread, NULL);
+
+     if (strncmp(runtime_input, "q", 1) == 0) { shmdt((void *) shm_ptr); exit(1); } // detach and exit
+
+     else
+     {// a number was entered
+
+          uint32_t number = strtoul(runtime_input, NULL, 10);
+          if (number > 0)
+          {// check if available slot
+
+               slot_number = send_query(shm_ptr, number);
+               if (slot_number < 11)
+               {// there is an available slot
+               
+                    shm_ptr -> complete_threads[slot_number] = 0;
+                    time(&(thread_time[slot_number]));
+               }                    
+
+               else printf("Server is busy\n");
+          }
+     }
+
+     memset(runtime_input, 0, sizeof(runtime_input));
 }
