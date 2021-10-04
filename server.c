@@ -46,45 +46,45 @@ void create_threads()
 
                uint32_t number = shm_ptr -> number; // read data from shared memory
 
-               if (number == 0) 
-               {// user entered 0 run test mode
+               // if (number == 0) 
+               // {// user entered 0 run test mode
+                    
+               //      for (int query = 0; query < 3; query++)
+               //      {// assign 3 slots for 1 of 3 user queries
 
-                    for (int query = 0; query < 3; query++)
-                    {// assign 3 slots for 1 of 3 user queries
+               //           uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+               //           for (uint32_t i = 0; i < SIZE; i++)
+               //           {// look for available threads
 
-                         uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
-                         for (uint32_t i = 0; i < SIZE; i++)
-                         {// look for available threads
+               //                if (shm_ptr -> complete_threads[i] == -1)
+               //                {// if there is a thread available, assign it
 
-                              if (shm_ptr -> complete_threads[i] == -1)
-                              {// if there is a thread available, assign it
-
-                                   slot_number = i;
-                                   shm_ptr -> s_flag[i] = 0;
-                                   break;
-                              }
-                         }
+               //                     slot_number = i;
+               //                     shm_ptr -> s_flag[i] = 0;
+               //                     break;
+               //                }
+               //           }
                          
-                         shm_ptr -> number = slot_number;
+               //           shm_ptr -> number = slot_number;
 
-                         shm_ptr -> c_flag = 0;
+               //           shm_ptr -> c_flag = 0;
 
-                         pthread_t thread_id[10]; // create 10 threads for numbers 0-9/10-19/20-29
+               //           pthread_t thread_id[10]; // create 10 threads for numbers 0-9/10-19/20-29
 
-                         struct hold_rotations thread_data[10]; // hold each of the 10 numbers
+               //           struct hold_rotations thread_data[10]; // hold each of the 10 numbers
 
-                         for (int i = 0; i < 10; i++)
-                         {// assign each nunber 
+               //           for (int i = 0; i < 10; i++)
+               //           {// assign each nunber 
 
-                              thread_data[i].number = i + (query * 10);
-                              thread_data[i].slot_number = slot_number;
-                              pthread_create(&(thread_id[i]), NULL, (void *) test_case, (void *) &(thread_data[i]));
-                         }
-                    }
-               }
+               //                thread_data[i].number = i + (query * 10);
+               //                thread_data[i].slot_number = slot_number;
+               //                pthread_create(&(thread_id[i]), NULL, (void *) test_case, (void *) &(thread_data[i]));
+               //           }
+               //      }
+               // }
 
-               else
-               {// normal case
+               // else
+               // {// normal case
 
                     // assign a slot number to client
                     uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
@@ -115,7 +115,7 @@ void create_threads()
                          thread_data[i].slot_number = slot_number;
                          pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
                     }
-               }
+              // }
           }
      }  
 }

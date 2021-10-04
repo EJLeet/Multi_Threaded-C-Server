@@ -59,31 +59,32 @@ void get_input(struct Memory *shm_ptr)
           // user entered a number
           uint32_t number = strtoul(user_input, NULL, 10); 
 
-          if (number == 0)
-          {// test case - check if server is processing
+          // if (number == 0)
+          // {// test case - check if server is processing
 
-               slot_number = send_query(shm_ptr, number);
+          //      slot_number = send_query(shm_ptr, number);
 
-               if (slot_number == 0)
-               {// server is not processing
+          //      if (slot_number == 0)
+          //      {// server is not processing
 
-                    shm_ptr -> complete_threads[slot_number] = 0;
-                    time(&(thread_time[slot_number]));
-                    memset(user_input, 0, sizeof(user_input)); // clear input
-               }
+          //           shm_ptr -> complete_threads[slot_number] = 0;
+          //           time(&(thread_time[slot_number]));
+          //           memset(user_input, 0, sizeof(user_input)); // clear input
+          //           break;
+          //      }
 
-               else
-               {// server is processing
+          //      else
+          //      {// server is processing
 
-                    printf("Test case will run after server has processed all other requests\n");
-                    shm_ptr -> complete_threads[slot_number] = 0;
-                    time(&(thread_time[slot_number]));
-                    memset(user_input, 0, sizeof(user_input)); // clear input
-               }
-          }
+          //           printf("Test case will run after server has processed all other requests\n");
+          //           shm_ptr -> complete_threads[slot_number] = 0;
+          //           time(&(thread_time[slot_number]));
+          //           memset(user_input, 0, sizeof(user_input)); // clear input
+          //      }
+          // }
           
-          else
-          {// send query to server and receive slot number
+          // else
+          // {// send query to server and receive slot number
                
                slot_number = send_query(shm_ptr, number);
 
@@ -94,7 +95,7 @@ void get_input(struct Memory *shm_ptr)
                memset(user_input, 0, sizeof(user_input)); // clear input
 
                printf("%d numbers sent to server\n", slot_number + 1);
-          }
+        //  }
      }
 
      receive_factors(shm_ptr);
