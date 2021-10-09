@@ -4,9 +4,12 @@ void create_threads();
 uint32_t rotate(uint32_t number, int bits_rotated);
 void trial_division(void *data);
 int msleep(long msec);
+void test_case();
+void print_test(void *data);
 
 struct hold_rotations { uint32_t number; int slot_number; }; // used to hold data for each thread (rotated number)
 struct Memory *shm_ptr; // shared memory
+bool user_wants_test = false; // marked true if user enters 0
 
 sem_t mutex[SIZE]; // semaphore access for factorising threads on specific slot
 
@@ -35,6 +38,7 @@ int main(void)
 
 void create_threads()
 {// setup threads and communication data/flags between server and client
+     
      for (int i = 0; i < SIZE; i++) sem_init(&(mutex[i]), 0, 1); // ensure threads do not read and write at the same time
 
      while (1)
@@ -44,36 +48,43 @@ void create_threads()
           {// check to see if client has sent a number
 
                uint32_t number = shm_ptr -> number; // read data from shared memory
+               
+               if (number == 0) user_wants_test = true;
 
-               // assign a slot number to client
-               uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
-               for (uint32_t i = 0; i < SIZE; i++)
-               {// look for available threads
+               else
+               {// normal case
 
-                    if (shm_ptr -> complete_threads[i] == -1)
-                    {// if there is a thread available, assign it
+                    // assign a slot number to client
+                    uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+                    for (uint32_t i = 0; i < SIZE; i++)
+                    {// look for available threads
 
-                         slot_number = i;
-                         shm_ptr -> s_flag[i] = 0;
-                         break;
+                         if (shm_ptr -> complete_threads[i] == -1)
+                         {// if there is a thread available, assign it
+
+                              slot_number = i;
+                              shm_ptr -> s_flag[i] = 0;
+                              break;
+                         }
+                    }
+
+                    shm_ptr -> number = slot_number;
+
+                    shm_ptr -> c_flag = 0;
+
+                    pthread_t thread_id[32]; // start 32 threads for this number
+                    
+                    struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
+
+                    for (int i = 0; i < 32; i++) 
+                    {// rotate each number and assign to thread data
+                    
+                         thread_data[i].number = rotate(number, i);
+                         thread_data[i].slot_number = slot_number;
+                         pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
                     }
                }
-
-               shm_ptr -> number = slot_number;
-
-               shm_ptr -> c_flag = 0;
-
-               pthread_t thread_id[32]; // start 32 threads for this number
-               
-               struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
-
-               for (int i = 0; i < 32; i++) 
-               {// rotate each number and assign to thread data
-               
-                    thread_data[i].number = rotate(number, i);
-                    thread_data[i].slot_number = slot_number;
-                    pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
-               }
+               if (user_wants_test) test_case();
           }
      }  
 }
@@ -142,4 +153,71 @@ int msleep(long msec)
      while (res && errno == EINTR);
 
      return res;
+}
+
+void test_case()
+{// simulate 3 user queries
+
+     bool running = true;
+     for (int i = 0; i < SIZE; i++)
+     {// check to make sure nothing else is running
+
+          if (shm_ptr -> complete_threads[i] == -1) running = false;
+          else running = true;
+     }
+
+     if (!running)
+     {// nothing else is running can do test case
+
+          for (int i = 0; i < 3; i++)
+          {// create 3 slots/queries
+
+               uint32_t slot_number;
+               slot_number = i;
+               shm_ptr -> s_flag[i] = 0;
+               shm_ptr -> number = slot_number;
+               shm_ptr -> c_flag = 0;
+
+               pthread_t thread_id[10]; // create 10 threads for this query
+               struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
+
+               for (int j = 0; j < 10; j++)
+               {// assign numbers 0-9 to query
+
+                    thread_data[j].number = (i * 10) + j;
+                    thread_data[j].slot_number = slot_number;
+                    pthread_create(&(thread_id[j]), NULL, (void *) print_test, (void *) &(thread_data[j]));
+               }
+          }
+     }
+}
+
+void print_test(void *data)
+{// print the test case data
+
+     srand(time(NULL)); // set seed for random delay
+
+     uint32_t number = ((struct hold_rotations *)data) -> number;
+     int slot_number = ((struct hold_rotations *)data) -> slot_number;
+
+     sem_wait(&(mutex[slot_number]));
+                    
+     while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
+
+     // send number
+     shm_ptr -> slot[slot_number] = number;
+     shm_ptr -> s_flag[slot_number] = 1;
+
+     msleep((rand() % 90) + 10); //random delay between 10 and 100ms
+
+     sem_post(&(mutex[slot_number])); // semaphore signal
+
+     // thread has finished
+     sem_wait(&(mutex[slot_number]));
+     shm_ptr -> complete_threads[slot_number]++;
+     printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> complete_threads[slot_number]);
+
+     sem_post(&(mutex[slot_number]));
+
+     pthread_exit(NULL);
 }

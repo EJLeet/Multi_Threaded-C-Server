@@ -14,6 +14,7 @@
 #include <time.h>
 #include <errno.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define SIZE 10
 
