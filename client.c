@@ -1,13 +1,19 @@
 #include "dependencies.h"
 
+
 void get_input(struct Memory *shm_ptr);
 int send_query(struct Memory *shm_ptr, uint32_t number);
 void receive_factors(struct Memory *shm_ptr);
-void *user_input_thread(void * data);
 void check_user_input(struct Memory *shm_ptr);
+void progress_bar();
+void delete_bar(int length);
+void display_bar(int progress, int length, int slot);
 
 time_t thread_time[SIZE];
 char runtime_input[11];
+
+// scan for user input while receving data
+void *user_input_thread(void * data) { fgets(runtime_input, sizeof(runtime_input), stdin); strtok(runtime_input, "\n"); }
 
 int main(void)
 {
@@ -93,13 +99,19 @@ int send_query(struct Memory *shm_ptr, uint32_t number)
 void receive_factors(struct Memory *shm_ptr)
 {// display factors sent form server
 
-     char input;
+     clock_t progress;
      int slot_number = 0;
 
      while (1)
      {// loop to get numbers from user or receive data from server
 
           check_user_input(shm_ptr); // get user input and handle quit
+
+          // get time from last server response
+          clock_t current = clock() - progress;
+          int msec = progress * 1000 / CLOCKS_PER_SEC;
+
+          if (msec >= 500) progress_bar(shm_ptr); // thread completion status
 
           for (int i = 0; i < SIZE; i++)
           {// receive server data
@@ -109,6 +121,7 @@ void receive_factors(struct Memory *shm_ptr)
 
                     printf("Query %d: Factor: %u\n", i + 1, shm_ptr -> slot[i]);
                     shm_ptr -> s_flag[i] = 0;
+                    progress = clock(); // start 500ms clock from last response
                }
 
                if (shm_ptr -> complete_threads[i] > 31)
@@ -120,16 +133,10 @@ void receive_factors(struct Memory *shm_ptr)
                     time(&elapsed);
                     double time_taken = difftime(elapsed, thread_time[i]);
                     printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
+                    progress = clock(); // start 500ms clock from last response
                }
           }     
      }
-}
-
-void *user_input_thread(void * data)
-{// scan for user input while receving data
-
-     fgets(runtime_input, sizeof(runtime_input), stdin);
-     strtok(runtime_input, "\n");
 }
 
 void check_user_input(struct Memory *shm_ptr)
@@ -161,4 +168,42 @@ void check_user_input(struct Memory *shm_ptr)
      }
 
      memset(runtime_input, 0, sizeof(runtime_input));
+}
+
+void progress_bar(struct Memory *shm_ptr)
+{// handle progress bars by calling display or delete
+     int percent_complete, active = 0;
+     printf("Progress: ");
+
+     for (int i = 0; i < 10; i++)
+     {// loop through 10 queries
+
+          if (shm_ptr -> complete_threads[i] != -1)
+          {// check if they're active
+               
+               active++;
+               percent_complete = (int) round(shm_ptr -> complete_threads[i] / 32.0 * 100); // get overall %
+               percent_complete = round(percent_complete / 5) * 5; // round to nearest 5 %
+               display_bar(percent_complete, 10, i + 1);
+               printf(" ");
+          } 
+     }
+     delete_bar(10 + (26 * active));
+}
+
+void delete_bar(int length)
+{// delete the bar to stop overflow and re-display
+     for (int i = 0; i < length; i++) printf("\b");
+     for (int i = 0; i < length; i++) printf(" ");
+     for (int i = 0; i < length; i++) printf("\b");
+}
+
+void display_bar(int progress, int length, int slot)
+{// draw the bar to screen
+     int full = progress / 10;
+     printf("Slot %d: %d%% ", slot, progress);
+
+     for (int i = 0; i < full; i++) printf("▓");
+     for (int i = 0; i < length - full; i++) printf("_");
+     printf("|");
 }

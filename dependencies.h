@@ -13,6 +13,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <errno.h>
+#include <math.h>
 
 #define SIZE 10
 
