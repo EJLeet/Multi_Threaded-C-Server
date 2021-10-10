@@ -9,8 +9,9 @@ void user_input();
 int send(uint32_t number);
 
 struct Memory *shm_ptr; // shared memory
-time_t thread_time[SIZE];
-char runtime_input[11];
+time_t thread_time[SIZE]; // used for thread times
+clock_t timer; // used for 500ms progress bars
+char runtime_input[11]; // input for thread
 
 // scan for user input while receving data
 void *user_input_thread(void * data) { fgets(runtime_input, sizeof(runtime_input), stdin); strtok(runtime_input, "\n"); }
@@ -55,7 +56,10 @@ void input_output()
     while (1)
     {// loop until all requests handles
 
-        //progress();
+        clock_t elapsed = clock() - timer;
+        int msec = elapsed * 1000 / CLOCKS_PER_SEC;
+
+        if (msec > 500) progress(); // display progress bars if 500ms delay
         receive();
 
         if (slot_number < 9)
@@ -79,7 +83,7 @@ void input_output()
         }
 
         else user_input(); // only check for thread activity after 10 queries received
-        
+
     }
 }
 
@@ -101,6 +105,7 @@ void progress()
             printf(" ");
         } 
     }
+    
     delete(10 + (26 * active));
 }
 
@@ -121,7 +126,6 @@ void display(int progress, int length, int slot)
     for (int i = 0; i < full; i++) printf("▓");
     for (int i = 0; i < length - full; i++) printf("_");
     printf("|");
-    fflush(0);
 }
 
 void receive()
@@ -134,6 +138,7 @@ void receive()
 
             printf("Query %d: Factor: %u\n", i + 1, shm_ptr -> slot[i]);
             shm_ptr -> s_flag[i] = 0;
+            timer = clock();
         }
 
         if (shm_ptr -> progress[i] > 31)
@@ -146,6 +151,7 @@ void receive()
             double time_taken = difftime(elapsed, thread_time[i]);
 
             printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
+            timer = clock();
         }
     }
 }
@@ -158,12 +164,7 @@ void user_input()
 
     pthread_create(&check_input, NULL, user_input_thread, NULL);
 
-    if (strncmp(runtime_input, "q", 1) == 0)
-    {// detach and exit
-        shm_ptr -> c_flag = 9; // let server know to quit
-        shmdt((void *) shm_ptr); 
-        exit(1); 
-    } 
+    if (strncmp(runtime_input, "q", 1) == 0) { shm_ptr -> c_flag = 9; exit(1); } // quit and advice server to do same
 
     else
     {// a number was entered

@@ -48,6 +48,7 @@ void create_threads()
 
             // assign a slot number to client
             uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+            
             for (uint32_t i = 0; i < SIZE; i++)
             {// look for available threads
 
@@ -77,16 +78,13 @@ void create_threads()
             }
         }
 
-        if (shm_ptr -> c_flag == 9)
-        {// detach memory and exit
-            shmdt((void *) shm_ptr);
-            exit(1);
-        }
+        if (shm_ptr -> c_flag == 9) exit(1);
     }  
 }
 
 uint32_t rotate(uint32_t number, int bits_rotated)
 {// take a number and rotate it by b bits
+
     if (bits_rotated == 0) return number;
     return (number >> bits_rotated) | (number << (32 - bits_rotated));
 }
@@ -137,6 +135,7 @@ void trial_division(void *data)
 
 int msleep(long msec)
 {// function will use nanosleep() to sleep for passed number of milliseconds
+
     struct timespec ts;
     int res;
 
