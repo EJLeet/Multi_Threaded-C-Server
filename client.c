@@ -5,6 +5,7 @@ void progress();
 void delete(int length);
 void display(int progress, int length, int slot);
 void receive();
+void test_mode(int slot_number);
 void user_input();
 int send(uint32_t number);
 
@@ -36,8 +37,7 @@ int main(void)
     for (int i = 0; i < SIZE; i++) shm_ptr -> progress[i] = -1;
 
     // display user options
-    printf("The server will start factorising numbers once 10 numbers have been sent\n");
-    printf("If the server has finished factorising a query, you may enter another query\n");
+    printf("If the server has finished factorising a query, you may enter another\n");
     printf("Enter q at anytime to quit\n");
 
     input_output(); // run program
@@ -52,6 +52,9 @@ void input_output()
 {
     char input[11];
     int slot_number = 0;
+    bool server_busy = false; // used for test mode
+
+    printf("Enter a 32 bit number: ");
 
     while (1)
     {// loop until all requests handles
@@ -59,31 +62,10 @@ void input_output()
         clock_t elapsed = clock() - timer;
         int msec = elapsed * 1000 / CLOCKS_PER_SEC;
 
-        if (msec > 500) progress(); // display progress bars if 500ms delay
+        // display progress bars if 500ms delay and there are active queries
+        for (int i = 0; i < 10; i++) if (shm_ptr -> progress[i] != -1) if (msec > 500) progress();
         receive();
-
-        if (slot_number < 9)
-        {// prompt user for 10 32 bit integer
-
-            // get number from user, convert to 32 bit ul
-            printf("Enter a 32 bit number: ");
-            fgets(input, sizeof(input), stdin);
-            strtok(input, "\n");
-
-            // user entered a number
-            uint32_t number = strtoul(input, NULL, 10); 
-
-            slot_number = send(number);
-
-            // there is an available slot, send and start clock
-            shm_ptr -> progress[slot_number] = 0;
-            time(&(thread_time[slot_number]));
-            
-            memset(input, 0, sizeof(input)); // clear input
-        }
-
-        else user_input(); // only check for thread activity after 10 queries received
-
+        user_input();
     }
 }
 
@@ -97,7 +79,7 @@ void progress()
 
         if (shm_ptr -> progress[i] != -1)
         {// check if they're active
-            
+
             active++;
             percent_complete = (int) round(shm_ptr -> progress[i] / 32.0 * 100); // get overall %
             percent_complete = round(percent_complete / 5) * 5; // round to nearest 5 %
@@ -154,6 +136,26 @@ void receive()
             timer = clock();
         }
     }
+}
+
+void test_mode(int slot_number)
+{// simulate 3 user queries
+
+    printf("INSIDE TEST MODE\n");
+    shm_ptr -> c_flag = 8;
+
+    for (int i = 0; i < 3; i++)
+    {// simulate 3 user requests
+
+        shm_ptr -> c_flag = 1;
+        slot_number = send(i);
+        shm_ptr -> progress[slot_number] = 0;
+        time(&(thread_time[slot_number]));
+        shm_ptr -> c_flag = 8;
+    }
+
+    shm_ptr -> c_flag = 1;
+    receive();
 }
 
 void user_input()

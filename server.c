@@ -4,6 +4,8 @@ void create_threads();
 uint32_t rotate(uint32_t number, int bits_rotated);
 void trial_division(void *data);
 int msleep(long msec);
+void test_mode();
+void print_test(void *data);
 
 struct hold_rotations { uint32_t number; int slot_number; }; // used to hold data for each thread (rotated number)
 struct Memory *shm_ptr; // shared memory
@@ -78,7 +80,10 @@ void create_threads()
             }
         }
 
+        if (shm_ptr -> c_flag == 8) test_mode();
+
         if (shm_ptr -> c_flag == 9) exit(1);
+
     }  
 }
 
@@ -148,4 +153,69 @@ int msleep(long msec)
     while (res && errno == EINTR);
 
     return res;
+}
+
+void test_mode()
+{// run test case
+    printf("INSIDE TEST MODE\n");
+
+    uint32_t number = shm_ptr -> number; // read data from shared memory
+
+    // assign a slot number to client
+    uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+    
+    for (uint32_t i = 0; i < SIZE; i++)
+    {// look for available threads
+
+        if (shm_ptr -> progress[i] == -1)
+        {// if there is a thread available, assign it
+
+            slot_number = i;
+            shm_ptr -> s_flag[i] = 0;
+            break;
+        }
+    }
+
+    shm_ptr -> number = slot_number;
+
+    pthread_t thread_id[10]; // create 10 threads for this query
+    struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
+
+    for (int i = 0; i < 10; i++)
+    {// assign numbers 0-9 to query
+
+        thread_data[i].number = shm_ptr -> number * 10 + i;
+        thread_data[i].slot_number = slot_number;
+        pthread_create(&(thread_id[i]), NULL, (void *) print_test, (void *) &(thread_data[i]));
+    }
+}
+
+void print_test(void *data)
+{// print the test case data
+
+    srand(time(NULL)); // set seed for random delay
+
+    uint32_t number = ((struct hold_rotations *)data) -> number;
+    int slot_number = ((struct hold_rotations *)data) -> slot_number;
+
+    sem_wait(&(mutex[slot_number]));
+                
+    while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
+
+    // send number
+    shm_ptr -> slot[slot_number] = number;
+    shm_ptr -> s_flag[slot_number] = 1;
+
+    msleep((rand() % 90) + 10); //random delay between 10 and 100ms
+
+    sem_post(&(mutex[slot_number])); // semaphore signal
+
+    // thread has finished
+    sem_wait(&(mutex[slot_number]));
+    shm_ptr -> progress[slot_number]++;
+    printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> progress[slot_number]);
+
+    sem_post(&(mutex[slot_number]));
+
+    pthread_exit(NULL);
 }
