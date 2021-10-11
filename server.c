@@ -3,7 +3,6 @@
 void create_threads();
 uint32_t rotate(uint32_t number, int bits_rotated);
 void trial_division(void *data);
-int msleep(long msec);
 void test_mode();
 void print_test(void *data);
 
@@ -85,7 +84,7 @@ void create_threads()
             }
         }
 
-        if (shm_ptr -> c_flag == 9) exit(1);
+        if (shm_ptr -> c_flag == 9) { printf("Client has left - Server will terminate\n"); exit(1); }
 
     }  
 }
@@ -99,6 +98,7 @@ uint32_t rotate(uint32_t number, int bits_rotated)
 
 void trial_division(void *data)
 {
+    printf("Running Trial Division\n");
     uint32_t number = ((struct hold_rotations *)data) -> number, factor = 2, prev_factor = 0;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
 
@@ -120,7 +120,7 @@ void trial_division(void *data)
                 shm_ptr -> s_flag[slot_number] = 1;
                 prev_factor = factor;
 
-                msleep(10); // 10 millisecond delay
+                usleep(10000); // 10 millisecond delay
 
                 pthread_mutex_unlock(&mutex[slot_number]);
 
@@ -135,38 +135,19 @@ void trial_division(void *data)
     // thread has finished
     pthread_mutex_lock(&mutex[slot_number]);
     shm_ptr -> progress[slot_number]++;
-    printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> progress[slot_number]);
 
     pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
 }
 
-int msleep(long msec)
-{// function will use nanosleep() to sleep for passed number of milliseconds
-
-    struct timespec ts;
-    int res;
-
-    if (msec < 0) { errno = EINVAL; return -1; }
-
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
-
-    do res = nanosleep(&ts, &ts);
-    while (res && errno == EINTR);
-
-    return res;
-}
-
 void test_mode()
-{// simulate 3 user queries
+{
+    printf("Running TESTMODE\n");
 
-    for (int i = 0; i < SIZE; i++) pthread_mutex_init(&mutex[i], NULL);
-
-    for (int i = 0; i < 3; i++)
+    for (int query = 0; query < 3; query++)
     {
-        // assign a slot number to client
+        
         uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
         
         for (uint32_t j = 0; j < SIZE; j++)
@@ -183,29 +164,30 @@ void test_mode()
 
         shm_ptr -> number = slot_number;
 
-        shm_ptr -> c_flag = 0;
+        shm_ptr -> c_flag = 8;
 
         pthread_t thread_id[10]; // create 10 threads for this query
         struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
-    
-        for (int j = 0; j < 10; j++)
-        {// assign numbers 0-9 to query
 
-            thread_data[j].number = i * 10 + j;
-            thread_data[j].slot_number = slot_number;
-            pthread_create(&(thread_id[j]), NULL, (void *) print_test, (void *) &(thread_data[j]));
+        for (int i = 0; i < SIZE; i++)
+        {
+            for (int j = 0; j < SIZE; j++)
+            {// assign numbers 0-9 to query
+
+                thread_data[j].number = i * 10 + j;
+                thread_data[j].slot_number = slot_number;
+                pthread_create(&(thread_id[j]), NULL, (void *) print_test, (void *) &(thread_data[j]));
+            }
         }
     }
-    
 }
 
 void print_test(void *data)
 {// print the test case data
 
-    srand(time(NULL)); // set seed for random delay
-
     uint32_t number = ((struct hold_rotations *)data) -> number;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
+    srand(time(NULL)); // set seed for random delay
 
     pthread_mutex_lock(&mutex[slot_number]);
                 
@@ -215,16 +197,16 @@ void print_test(void *data)
     shm_ptr -> slot[slot_number] = number;
     shm_ptr -> s_flag[slot_number] = 1;
 
-    msleep((rand() % 90) + 10); //random delay between 10 and 100ms
+    usleep((rand() % 90 + 10) * 1000); //random delay between 10 and 100ms
 
     pthread_mutex_unlock(&mutex[slot_number]);
    
     // thread has finished
     pthread_mutex_lock(&mutex[slot_number]);
     shm_ptr -> progress[slot_number]++;
-    printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> progress[slot_number]);
 
     pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
+    
 }

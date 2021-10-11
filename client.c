@@ -38,8 +38,10 @@ int main(void)
     printf("Server will begin factorising after the first entered number\n");
     printf("You may have up to 10 outstanding queries at any time\n");
     printf("If the server has finished factorising a query, you may enter another\n");
+    printf("Enter 0 to run test mode\n");
     printf("Enter q at anytime to quit\n");
 
+    printf("Enter a 32 bit number: ");
     input_output(); // run program
 
     shmdt((void *) shm_ptr); // detach memory and exit
@@ -53,8 +55,6 @@ void input_output()
     char input[11];
     int slot_number = 0;
 
-    printf("Enter a 32 bit number: ");
-
     while (1)
     {// loop until all requests handles
 
@@ -62,7 +62,7 @@ void input_output()
         int msec = elapsed * 1000 / CLOCKS_PER_SEC;
 
         // display progress bars if 500ms delay and there are active queries
-        for (int i = 0; i < SIZE; i++) if (shm_ptr -> progress[i] != -1 && msec > 500) progress();
+        for (int i = 0; i < SIZE; i++) if (shm_ptr -> progress[i] != -1 && msec > 500 && shm_ptr -> c_flag != 8) progress();
         
         receive();
         user_input();
@@ -112,28 +112,48 @@ void display(int progress, int length, int slot)
 
 void receive()
 {
-    for (int i = 0; i < SIZE; i++)
-    {// receive server data
+    if (shm_ptr -> c_flag == 8)
+    {// test mode
 
-        if (shm_ptr -> s_flag[i] == 1)
-        {// factors can be read
+        for (int i = 0; i < SIZE; i++)
+        {// receive server data
 
-            printf("Query %d: Factor: %u\n", i + 1, shm_ptr -> slot[i]);
-            shm_ptr -> s_flag[i] = 0;
-            timer = clock();
+            if (shm_ptr -> s_flag[i] == 1)
+            {// factors can be read
+
+                printf("TEST-MODE Factor: %u\n", shm_ptr -> slot[i]);
+                shm_ptr -> s_flag[i] = 0;
+                timer = clock();
+            }
         }
+    }
 
-        if (shm_ptr -> progress[i] > 31)
-        {// factorisation is complete
+    else
+    {
+        
+        for (int i = 0; i < SIZE; i++)
+        {// receive server data
 
-            shm_ptr -> progress[i] = -1;
-            
-            time_t elapsed; // get and print time taken for this query
-            time(&elapsed);
-            double time_taken = difftime(elapsed, thread_time[i]);
+            if (shm_ptr -> s_flag[i] == 1)
+            {// factors can be read
 
-            printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
-            timer = clock();
+                printf("Query %d: Factor: %u\n", i + 1, shm_ptr -> slot[i]);
+                shm_ptr -> s_flag[i] = 0;
+                timer = clock();
+            }
+
+            if (shm_ptr -> progress[i] > 31)
+            {// factorisation is complete
+
+                shm_ptr -> progress[i] = -1;
+                
+                time_t elapsed; // get and print time taken for this query
+                time(&elapsed);
+                double time_taken = difftime(elapsed, thread_time[i]);
+
+                printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
+                timer = clock();
+            }
         }
     }
 }
@@ -150,7 +170,7 @@ void user_input()
 
     else
     {// a number was entered
-
+        
         uint32_t number = strtoul(runtime_input, NULL, 10);
         if (number > 0)
         {// check if available slot
@@ -199,12 +219,9 @@ void *user_input_thread(void * data)
 void test_mode()
 {// simulate 3 user queries
 
-    int slot_number = 0;
+    int slot_number = send(0);
 
-    for (int i = 0; i < 3; i++) 
-    {
-        slot_number = send(i);
-        shm_ptr -> progress[slot_number] = 0;
-        time(&(thread_time[slot_number]));                    
-    }
+    shm_ptr -> progress[slot_number] = 0;
+
+    shm_ptr -> c_flag = 8;
 }

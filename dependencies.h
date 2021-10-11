@@ -23,6 +23,7 @@ struct Memory
 };
 /*
 c_flag = 1 when there is a request outstanding
+c_flag = 8 TEST-MODE
 c_flag = 9 server can quit
 
 s_flag = 0 server is active
