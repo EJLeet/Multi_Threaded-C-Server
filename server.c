@@ -9,7 +9,7 @@ void print_test(void *data);
 struct hold_rotations { uint32_t number; int slot_number; }; // used to hold data for each thread (rotated number)
 struct Memory *shm_ptr; // shared memory
 
-pthread_mutex_t mutex[SIZE];
+pthread_mutex_t mutex[SIZE]; // setup a mutex for each slot
 
 int main(void)
 {
@@ -50,8 +50,8 @@ void create_threads()
             if (number == 0) test_mode();
 
             else
-            {
-                // assign a slot number to client
+            {// assign a slot number to client
+
                 uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
                 
                 for (uint32_t i = 0; i < SIZE; i++)
@@ -84,6 +84,7 @@ void create_threads()
             }
         }
 
+        // quit
         if (shm_ptr -> c_flag == 9) { printf("Client has left - Server will terminate\n"); exit(1); }
 
     }  
@@ -97,7 +98,8 @@ uint32_t rotate(uint32_t number, int bits_rotated)
 }
 
 void trial_division(void *data)
-{
+{// perform null previous factor trial division
+
     printf("Running Trial Division\n");
     uint32_t number = ((struct hold_rotations *)data) -> number, factor = 2, prev_factor = 0;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
@@ -142,11 +144,12 @@ void trial_division(void *data)
 }
 
 void test_mode()
-{
+{// simulate test mode
+
     printf("Running TESTMODE\n");
 
     for (int query = 0; query < 3; query++)
-    {
+    {// simulate 3 queries
         
         uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
         
@@ -180,6 +183,8 @@ void test_mode()
             }
         }
     }
+
+    // revert flags and slots for normal mode
     for (int i = 0; i < SIZE; i++) shm_ptr -> progress[i] = -1;
     shm_ptr -> c_flag = 0;
 }
@@ -210,5 +215,4 @@ void print_test(void *data)
     pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
-    
 }

@@ -47,7 +47,8 @@ int main(void)
 }
 
 void input_output()
-{
+{// main run function for program, handles all input and output requests
+
     pthread_t check_input;
     printf("Enter a 32 bit number: ");
 
@@ -66,7 +67,8 @@ void input_output()
 }
 
 void progress()
-{
+{// displays progress by calling display and delete
+
     int percent_complete, active = 0;
     printf("Progress: ");
 
@@ -77,7 +79,7 @@ void progress()
         {// check if they're active
 
             active++;
-            percent_complete = (int) round(shm_ptr -> progress[i] / 32.0 * 100); // get overall %
+            percent_complete = (int) round(shm_ptr -> progress[i]); // get overall %
             percent_complete = round(percent_complete / 5) * 5; // round to nearest 5 %
             display(percent_complete, 10, i + 1);
             printf(" ");
@@ -107,10 +109,10 @@ void display(int progress, int length, int slot)
 }
 
 void receive()
-{
+{// get factors from server
 
     if (testing)
-    {
+    {// test mode
 
         for (int i = 0; i < SIZE; i++)
         {// receive server data
@@ -125,7 +127,8 @@ void receive()
     }
 
     else
-    {
+    {// normal mode - timers for progress bars
+
         for (int i = 0; i < SIZE; i++)
         {// receive server data
 
@@ -134,7 +137,7 @@ void receive()
 
                 printf("Query %d: Factor: %u\n", i + 1, shm_ptr -> slot[i]);
                 shm_ptr -> s_flag[i] = 0;
-                timer = clock();
+                timer = clock(); // start 500ms timer
             }
 
             if (shm_ptr -> progress[i] > 31)
@@ -142,12 +145,13 @@ void receive()
 
                 shm_ptr -> progress[i] = -1;
                 
-                time_t elapsed; // get and print time taken for this query
+                // get and print time taken for this query
+                time_t elapsed; 
                 time(&elapsed);
                 double time_taken = difftime(elapsed, thread_time[i]);
 
                 printf("Query %d is finished and took %.f seconds\n", i + 1, time_taken);
-                timer = clock();
+                timer = clock(); // start 500ms timer
             }
         }
     }
@@ -155,6 +159,7 @@ void receive()
 
 void *user_input_thread(void * data) 
 {// scan for user input while receving data
+
     int slot_number = 0;
     
     fgets(runtime_input, sizeof(runtime_input), stdin); 
@@ -169,7 +174,7 @@ void *user_input_thread(void * data)
     }
 
     else
-    {
+    {// number was entered
         uint32_t number = strtoul(runtime_input, NULL, 10);
         if (number > 0)
         {// check if available slot
@@ -188,11 +193,11 @@ void *user_input_thread(void * data)
         }
 
         else if (number == 0)
-        {
+        {// test mode
 
             bool active = false;
             for (int i = 0; i < SIZE; i++)
-            {
+            {// check if server is active
 
                 if (shm_ptr -> progress[i] != -1)
                 {
@@ -204,7 +209,8 @@ void *user_input_thread(void * data)
             }
 
             if (!active)
-            {
+            {// run test mode
+            
                 testing = true;
                 printf("TEST-MODE\n");
                 shm_ptr -> number = 0;

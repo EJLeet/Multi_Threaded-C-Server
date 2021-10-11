@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define SIZE 10
 
