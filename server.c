@@ -48,39 +48,43 @@ void create_threads()
 
             uint32_t number = shm_ptr -> number; // read data from shared memory
 
-            // assign a slot number to client
-            uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
-            
-            for (uint32_t i = 0; i < SIZE; i++)
-            {// look for available threads
+            if (number == 0) test_mode();
 
-                if (shm_ptr -> progress[i] == -1)
-                {// if there is a thread available, assign it
+            else
+            {
 
-                        slot_number = i;
-                        shm_ptr -> s_flag[i] = 0;
-                        break;
+                // assign a slot number to client
+                uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+                
+                for (uint32_t i = 0; i < SIZE; i++)
+                {// look for available threads
+
+                    if (shm_ptr -> progress[i] == -1)
+                    {// if there is a thread available, assign it
+
+                            slot_number = i;
+                            shm_ptr -> s_flag[i] = 0;
+                            break;
+                    }
+                }
+
+                shm_ptr -> number = slot_number;
+
+                shm_ptr -> c_flag = 0;
+
+                pthread_t thread_id[32]; // start 32 threads for this number
+                
+                struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
+
+                for (int i = 0; i < 32; i++) 
+                {// rotate each number and assign to thread data
+                
+                    thread_data[i].number = rotate(number, i);
+                    thread_data[i].slot_number = slot_number;
+                    pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
                 }
             }
-
-            shm_ptr -> number = slot_number;
-
-            shm_ptr -> c_flag = 0;
-
-            pthread_t thread_id[32]; // start 32 threads for this number
-            
-            struct hold_rotations thread_data[32]; // create 32 structs for each rotated number
-
-            for (int i = 0; i < 32; i++) 
-            {// rotate each number and assign to thread data
-            
-                thread_data[i].number = rotate(number, i);
-                thread_data[i].slot_number = slot_number;
-                pthread_create(&(thread_id[i]), NULL, (void *) trial_division, (void *) &(thread_data[i]));
-            }
         }
-
-        if (shm_ptr -> c_flag == 8) test_mode();
 
         if (shm_ptr -> c_flag == 9) exit(1);
 
@@ -156,38 +160,43 @@ int msleep(long msec)
 }
 
 void test_mode()
-{// run test case
-    printf("INSIDE TEST MODE\n");
+{// simulate 3 user queries
 
-    uint32_t number = shm_ptr -> number; // read data from shared memory
+    for (int i = 0; i < SIZE; i++) sem_init(&(mutex[i]), 0, 1); // ensure threads do not read and write at the same time
 
-    // assign a slot number to client
-    uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+    for (int i = 0; i < 3; i++)
+    {
+        // assign a slot number to client
+        uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
+        
+        for (uint32_t j = 0; j < SIZE; j++)
+        {// look for available threads
+
+            if (shm_ptr -> progress[j] == -1)
+            {// if there is a thread available, assign it
+
+                slot_number = j;
+                shm_ptr -> s_flag[j] = 0;
+                break;
+            }
+        }
+
+        shm_ptr -> number = slot_number;
+
+        shm_ptr -> c_flag = 0;
+
+        pthread_t thread_id[10]; // create 10 threads for this query
+        struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
     
-    for (uint32_t i = 0; i < SIZE; i++)
-    {// look for available threads
+        for (int j = 0; j < 10; j++)
+        {// assign numbers 0-9 to query
 
-        if (shm_ptr -> progress[i] == -1)
-        {// if there is a thread available, assign it
-
-            slot_number = i;
-            shm_ptr -> s_flag[i] = 0;
-            break;
+            thread_data[j].number = i * 10 + j;
+            thread_data[j].slot_number = slot_number;
+            pthread_create(&(thread_id[j]), NULL, (void *) print_test, (void *) &(thread_data[j]));
         }
     }
-
-    shm_ptr -> number = slot_number;
-
-    pthread_t thread_id[10]; // create 10 threads for this query
-    struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
-
-    for (int i = 0; i < 10; i++)
-    {// assign numbers 0-9 to query
-
-        thread_data[i].number = shm_ptr -> number * 10 + i;
-        thread_data[i].slot_number = slot_number;
-        pthread_create(&(thread_id[i]), NULL, (void *) print_test, (void *) &(thread_data[i]));
-    }
+    
 }
 
 void print_test(void *data)

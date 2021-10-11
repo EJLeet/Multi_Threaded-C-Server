@@ -5,17 +5,15 @@ void progress();
 void delete(int length);
 void display(int progress, int length, int slot);
 void receive();
-void test_mode(int slot_number);
 void user_input();
 int send(uint32_t number);
+void *user_input_thread(void * data);
+void test_mode();
 
 struct Memory *shm_ptr; // shared memory
 time_t thread_time[SIZE]; // used for thread times
 clock_t timer; // used for 500ms progress bars
 char runtime_input[11]; // input for thread
-
-// scan for user input while receving data
-void *user_input_thread(void * data) { fgets(runtime_input, sizeof(runtime_input), stdin); strtok(runtime_input, "\n"); }
 
 int main(void)
 {
@@ -37,6 +35,8 @@ int main(void)
     for (int i = 0; i < SIZE; i++) shm_ptr -> progress[i] = -1;
 
     // display user options
+    printf("Server will begin factorising after the first entered number\n");
+    printf("You may have up to 10 outstanding queries at any time\n");
     printf("If the server has finished factorising a query, you may enter another\n");
     printf("Enter q at anytime to quit\n");
 
@@ -52,7 +52,6 @@ void input_output()
 {
     char input[11];
     int slot_number = 0;
-    bool server_busy = false; // used for test mode
 
     printf("Enter a 32 bit number: ");
 
@@ -63,7 +62,8 @@ void input_output()
         int msec = elapsed * 1000 / CLOCKS_PER_SEC;
 
         // display progress bars if 500ms delay and there are active queries
-        for (int i = 0; i < 10; i++) if (shm_ptr -> progress[i] != -1) if (msec > 500) progress();
+        for (int i = 0; i < SIZE; i++) if (shm_ptr -> progress[i] != -1 && msec > 500) progress();
+        
         receive();
         user_input();
     }
@@ -138,26 +138,6 @@ void receive()
     }
 }
 
-void test_mode(int slot_number)
-{// simulate 3 user queries
-
-    printf("INSIDE TEST MODE\n");
-    shm_ptr -> c_flag = 8;
-
-    for (int i = 0; i < 3; i++)
-    {// simulate 3 user requests
-
-        shm_ptr -> c_flag = 1;
-        slot_number = send(i);
-        shm_ptr -> progress[slot_number] = 0;
-        time(&(thread_time[slot_number]));
-        shm_ptr -> c_flag = 8;
-    }
-
-    shm_ptr -> c_flag = 1;
-    receive();
-}
-
 void user_input()
 {// check for user input
 
@@ -204,4 +184,27 @@ int send(uint32_t number)
 
     // return slot number
     return shm_ptr -> number;
+}
+
+void *user_input_thread(void * data) 
+{// scan for user input while receving data
+    fgets(runtime_input, sizeof(runtime_input), stdin); 
+    strtok(runtime_input, "\n"); 
+    
+    uint32_t number = strtoul(runtime_input, NULL, 10);
+
+    if (number == 0) test_mode();
+}
+
+void test_mode()
+{// simulate 3 user queries
+
+    int slot_number = 0;
+
+    for (int i = 0; i < 3; i++) 
+    {
+        slot_number = send(i);
+        shm_ptr -> progress[slot_number] = 0;
+        time(&(thread_time[slot_number]));                    
+    }
 }
