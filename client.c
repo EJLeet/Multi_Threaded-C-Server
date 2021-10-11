@@ -81,7 +81,7 @@ void progress()
         {// check if they're active
 
             active++;
-            percent_complete = (int) round(shm_ptr -> progress[i] / 32.0 * 100); // get overall %
+            percent_complete = (int) round(shm_ptr -> progress[i]); // get overall %
             percent_complete = round(percent_complete / 5) * 5; // round to nearest 5 %
             display(percent_complete, 10, i + 1);
             printf(" ");

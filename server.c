@@ -10,7 +10,7 @@ void print_test(void *data);
 struct hold_rotations { uint32_t number; int slot_number; }; // used to hold data for each thread (rotated number)
 struct Memory *shm_ptr; // shared memory
 
-sem_t mutex[SIZE]; // semaphore access for factorising threads on specific slot
+pthread_mutex_t mutex[SIZE];
 
 int main(void)
 {
@@ -38,7 +38,7 @@ int main(void)
 void create_threads()
 {// setup threads and communication data/flags between server and client
     
-    for (int i = 0; i < SIZE; i++) sem_init(&(mutex[i]), 0, 1); // ensure threads do not read and write at the same time
+    for (int i = 0; i < SIZE; i++) pthread_mutex_init(&mutex[i], NULL); // ensure threads do not read and write at the same time
 
     while (1)
     {// loop until theres no more numbers queued
@@ -52,7 +52,6 @@ void create_threads()
 
             else
             {
-
                 // assign a slot number to client
                 uint32_t slot_number = SIZE + 1; // returns out of bounds if no slot available
                 
@@ -112,8 +111,8 @@ void trial_division(void *data)
             if (prev_factor != factor)
             {// dont print duplicates inside same thread
             
-                sem_wait(&(mutex[slot_number]));
-                
+                pthread_mutex_lock(&mutex[slot_number]);
+
                 while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
                 
                 // send factor
@@ -123,7 +122,8 @@ void trial_division(void *data)
 
                 msleep(10); // 10 millisecond delay
 
-                sem_post(&(mutex[slot_number])); // semaphore signal
+                pthread_mutex_unlock(&mutex[slot_number]);
+
             }
 
             number /= factor; // decrease f
@@ -133,11 +133,11 @@ void trial_division(void *data)
     }
 
     // thread has finished
-    sem_wait(&(mutex[slot_number]));
+    pthread_mutex_lock(&mutex[slot_number]);
     shm_ptr -> progress[slot_number]++;
     printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> progress[slot_number]);
 
-    sem_post(&(mutex[slot_number]));
+    pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
 }
@@ -162,7 +162,7 @@ int msleep(long msec)
 void test_mode()
 {// simulate 3 user queries
 
-    for (int i = 0; i < SIZE; i++) sem_init(&(mutex[i]), 0, 1); // ensure threads do not read and write at the same time
+    for (int i = 0; i < SIZE; i++) pthread_mutex_init(&mutex[i], NULL);
 
     for (int i = 0; i < 3; i++)
     {
@@ -207,7 +207,7 @@ void print_test(void *data)
     uint32_t number = ((struct hold_rotations *)data) -> number;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
 
-    sem_wait(&(mutex[slot_number]));
+    pthread_mutex_lock(&mutex[slot_number]);
                 
     while (shm_ptr -> s_flag[slot_number] != 0); // ensure client is ready
 
@@ -217,14 +217,14 @@ void print_test(void *data)
 
     msleep((rand() % 90) + 10); //random delay between 10 and 100ms
 
-    sem_post(&(mutex[slot_number])); // semaphore signal
-
+    pthread_mutex_unlock(&mutex[slot_number]);
+   
     // thread has finished
-    sem_wait(&(mutex[slot_number]));
+    pthread_mutex_lock(&mutex[slot_number]);
     shm_ptr -> progress[slot_number]++;
     printf("Query: %d   Thread: %d completed\n", slot_number + 1, shm_ptr -> progress[slot_number]);
 
-    sem_post(&(mutex[slot_number]));
+    pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
 }

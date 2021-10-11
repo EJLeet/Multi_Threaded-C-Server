@@ -10,7 +10,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <time.h>
 #include <errno.h>
 #include <math.h>
