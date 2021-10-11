@@ -180,6 +180,8 @@ void test_mode()
             }
         }
     }
+    for (int i = 0; i < SIZE; i++) shm_ptr -> progress[i] = -1;
+    shm_ptr -> c_flag = 0;
 }
 
 void print_test(void *data)
