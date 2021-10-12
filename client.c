@@ -184,7 +184,7 @@ void *user_input_thread(void *data)
     { // number was entered
 
         uint32_t number = strtoul(runtime_input, NULL, 10);
-        if (number > 0)
+        if (number > 0 && !testing)
         { // check if available slot
 
             testing = false;
