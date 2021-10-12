@@ -240,7 +240,7 @@ int send(uint32_t number)
     shm_ptr->c_flag = 1;
 
     // wait for server response
-    while (shm_ptr->c_flag != 0) ;
+    while (shm_ptr->c_flag != 0);
 
     // return slot number
     return shm_ptr->number;

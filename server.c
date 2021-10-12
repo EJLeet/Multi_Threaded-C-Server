@@ -106,6 +106,7 @@ void trial_division(void *data)
     printf("Running Trial Division\n");
     uint32_t number = ((struct hold_rotations *)data)->number, factor = 2, prev_factor = 0;
     int slot_number = ((struct hold_rotations *)data)->slot_number;
+    float counter = 0, max = 32, percent = 0;
 
     while (number > 1)
     { // Calculate factor
@@ -125,6 +126,14 @@ void trial_division(void *data)
                 shm_ptr->s_flag[slot_number] = 1;
                 prev_factor = factor;
 
+                // work out %
+                counter++;
+                percent = counter / max * 100;
+
+                if (counter >= max) shm_ptr->progress[slot_number] = 95;
+
+                else shm_ptr->progress[slot_number] = percent;
+
                 usleep(10000); // 10 millisecond delay
 
                 pthread_mutex_unlock(&mutex[slot_number]);
@@ -136,11 +145,7 @@ void trial_division(void *data)
         else factor++; // is not a factor move to next f
     }
 
-    // thread has finished
-    pthread_mutex_lock(&mutex[slot_number]);
-    shm_ptr->progress[slot_number]++;
-    pthread_mutex_unlock(&mutex[slot_number]);
-    pthread_exit(NULL);
+    pthread_exit(NULL); // thread has finished
 }
 
 void test_mode()
