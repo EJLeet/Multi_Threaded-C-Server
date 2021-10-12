@@ -103,6 +103,7 @@ void trial_division(void *data)
     printf("Running Trial Division\n");
     uint32_t number = ((struct hold_rotations *)data) -> number, factor = 2, prev_factor = 0;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
+    float percent = 0, divisor = 50, counter = 0, previous_percent = 0;
 
     while (number > 1)
     {// Calculate factor
@@ -122,6 +123,17 @@ void trial_division(void *data)
                 shm_ptr -> s_flag[slot_number] = 1;
                 prev_factor = factor;
 
+                // work out % complete
+                counter++;
+                previous_percent = percent;
+                percent += previous_percent + (counter / divisor * 100);
+
+                percent = round(percent / 5) * 5;
+
+                printf("percent: %f\n", percent);
+                if (percent > (int) 95) shm_ptr -> progress[slot_number] = 95; // send % to progress slot
+                else shm_ptr -> progress[slot_number] = percent; // send % to progress slot
+
                 usleep(10000); // 10 millisecond delay
 
                 pthread_mutex_unlock(&mutex[slot_number]);
@@ -135,10 +147,10 @@ void trial_division(void *data)
     }
 
     // thread has finished
-    pthread_mutex_lock(&mutex[slot_number]);
-    shm_ptr -> progress[slot_number]++;
+    // pthread_mutex_lock(&mutex[slot_number]);
+    // // shm_ptr -> progress[slot_number]++;
 
-    pthread_mutex_unlock(&mutex[slot_number]);
+    // pthread_mutex_unlock(&mutex[slot_number]);
 
     pthread_exit(NULL);
 }
@@ -167,7 +179,7 @@ void test_mode()
 
         shm_ptr -> number = slot_number;
 
-        shm_ptr -> c_flag = 8;
+        shm_ptr -> c_flag = 8; // set test mode flag
 
         pthread_t thread_id[10]; // create 10 threads for this query
         struct hold_rotations thread_data[10]; // create 10 structs to hold each thread data
