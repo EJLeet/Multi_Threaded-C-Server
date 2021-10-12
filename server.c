@@ -103,7 +103,7 @@ void trial_division(void *data)
     printf("Running Trial Division\n");
     uint32_t number = ((struct hold_rotations *)data) -> number, factor = 2, prev_factor = 0;
     int slot_number = ((struct hold_rotations *)data) -> slot_number;
-    float percent = 0, divisor = 50, counter = 0, previous_percent = 0;
+    float percent = 0, divisor = 100, counter = 0, previous_percent = 0;
 
     while (number > 1)
     {// Calculate factor
