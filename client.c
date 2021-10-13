@@ -5,7 +5,6 @@ void progress();
 void delete (int length);
 void display(int progress, int length, int slot);
 void receive();
-void user_input();
 int send(uint32_t number);
 void *user_input_thread(void *data);
 
